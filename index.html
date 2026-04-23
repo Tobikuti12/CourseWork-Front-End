@@ -3,206 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>After School Lessons</title>
+    <link rel="stylesheet" href="AfterSchoolLessons.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
     <script src="AfterSchoolLessons.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <!-- <script src="products.js"></script>   -->
-    <style>
-    
-.addtocart{
-    background-color: blue;
-    color: white;
-    border-radius: 10px;
-    height: 30px;
-    width: 100px;
-    border: none;
-}
-</style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
 </head>
 <body>
-    <div id="app">
-        <header>
-            <button v-on:click="showCheckout">
-                {{cartItemCount}}
-                <span class="fa-solid fa-cart-shopping"></span>CheckOut
-                
-            </button>
-        </header>
-        <main>
-             <div v-if='showProduct'>
+<div id="app">
+    <header>
+        <button v-on:click="showCheckout" v-if="cartItemCount > 0">
+            {{cartItemCount}} <span class="fa-solid fa-cart-shopping"></span> CheckOut
+        </button>
+        <button disabled v-else>
+            <span class="fa-solid fa-cart-shopping"></span> CheckOut
+        </button>   
+    </header>
+
+    <main>
+        <div v-if='showProduct'>
             <h1 v-text="sitename"></h1>
-
-            <div v-for="product in products">
-            <h1 v-text="product.title"></h1>
-            <img width="20%" height="200px" v-bind:src="product.image">
-            <p>Price: {{product.price}}</p>
-            <p>Spaces: {{product.availableInventory}}</p>
-            <p>Location:{{product.location}}</p>
-    
-            <button class="addtocart" v-on:click="addtocart(product)" v-if="canAddToCart(product)">add to cart</button>
-            <button disabled='disabled' v-else>add to cart</button>
-            <span v-if='product.availableInventory === cartCount(product.id)'>
-                All out!
-            </span>
-            <span v-else-if="product.availableInventory - cartCount(product.id) <5">
-                only {{ product.availableInventory - cartCount(product.id)}} left!
-            </span>
-            <span v-else>BUY NOW!</span>
-
-             
-
-             <div>
-                <span v-for='n in product.rating'>★</span>
-                <span v-for='n in 5-product.rating'>☆</span>
-             </div>
-
-             </div>
-
-             </div>
             
-             <div v-else>
-                <h2>Checkout</h2>
+            <div class="search-bar">
+                <input type="text" v-model="searchText" placeholder="Search lessons..." />
+            </div>
+
+            <div class="sort-bar">
+                <select v-model="sortBy">
+                    <option value="title">Sort by Subject</option>
+                    <option value="location">Sort by Location</option>
+                    <option value="price">Sort by Price</option>
+                    <option value="availableInventory">Sort by Spaces</option>
+                </select>
+                <select v-model="sortOrder">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
+
+            <div v-for="product in filteredProducts" :key="product.id || product._id" class="product-card">
+                <img v-bind:src="product.image" alt="Product Image">
+                <div>
+                    <h2 v-text="product.title"></h2>
+                    <p>Price: ${{product.price}}</p>
+                    <p>Location: {{product.location}}</p>
+                    <p>Spaces: {{product.availableInventory - cartCount(product.id || product._id)}}</p>
+                    
+                    <button class="addtocart" v-on:click="addtocart(product)" v-if="canAddToCart(product)">Add to cart</button>
+                    <button disabled v-else>Out of Stock</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-else>
+            <h1>Checkout</h1>
+            <button v-on:click="showCheckout">Back to Lessons</button>
+            
+            <div style="margin-top:20px;">
+                <p><strong>First Name (Letters only):</strong> <input v-model.trim="order.firstname" /></p>
+                <p><strong>Last Name (Letters only):</strong> <input v-model.trim="order.lastname" /></p>
+                <p><strong>Phone (Numbers only):</strong> <input v-model.trim="order.phone" /></p>
+                <p><strong>Address:</strong> <input v-model="order.address" /></p>
+                <p><strong>City:</strong> <input v-model="order.city" /></p>
                 <p>
-                    <strong>First Name:</strong>
-                    <input v-model.trim="order.firstname" />
-                </p>
-                <p>
-                    <strong>Last Name:</strong>
-                    <input v-model.trim="order.lastname" />
-                </p>
-                <p>
-                    <strong>Address:</strong>
-                    <input v-model="order.address" />
-                </p>
-                <p>
-                    <strong>City:</strong>
-                    <input v-model="order.city" />
-                </p>
-                <p>
-                    <strong>state:</strong>
+                    <strong>State:</strong>
                     <select v-model="order.state">
-                        <option disabled value="">state</option>
-                        <option v-for="(state,key) in states" v-bind:value="state">
-                            {{key}}
-                        </option>
+                        <option disabled value="">State</option>
+                        <option v-for="(state,key) in states" v-bind:value="state">{{key}}</option>
                     </select>
                 </p>
-                <p><input v-bind:true-value="order.sendGift" v-bind:false-value="order.doNotSendGift" type="checkbox" v-model="order.gift" id="gift">
-                <label for="gift">Shift As a gift</label>
-                </p>
-                <p>
-                    <input type="radio" v-model="order.method" value="home" id="home">
-                    <label for="home">Home</label>
-                    <input type="radio" v-model="order.method" value="buisness" id="buisness">
-                    <label for="buisness">buisness</label>
-                </p>
-                <p><strong>Zip/Postal Code:</strong>
-                <input type="number" v-model.number="order.zip">
-                </p>
-                <h2>order information </h2>
-                <p>FirstName: {{order.firstname}}</p>
-                <p>Lastname: {{order.lastname}}</p>
-                <p>Address: {{order.address}}</p>
-                <p>City: {{order.city}}</p>
-                <p>State: {{order.state}}</p>
-                <p>Zip: {{order.zip}}</p>
-                <p>Gift: {{order.gift}}</p>
-                <p>Method: 
-                    {{order.method}}</p>
-                    <h1>Cart</h1>
-                       <ul>
-                        <li v-for="(item,index) in cart" :key="index">
-                            {{item.id}}
-                            {{item.title}}
-                            <button v-on:click="deleteitem">delete</button>
-                        </li>
-                       </ul>
-                <button v-on:click="submitForm">Place Order</button>
 
-             </div>
-        </main>
+                <div style="background: #f4f4f4; padding: 15px; margin-top: 20px; border: 1px solid #ddd;">
+                    <h3>Order Summary Preview</h3>
+                    <p>Name: {{order.firstname}} {{order.lastname}}</p>
+                    <p>Phone: {{order.phone}}</p>
+                    <p>Items in Cart: {{cartItemCount}}</p>
+                </div>
 
-       
-    </div>
+                <button v-if="isFormValid" v-on:click="submitForm" style="background-color: #16a34a; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; margin-top: 20px;">
+                    Place Order
+                </button>
+                <button v-else disabled style="margin-top: 20px;">
+                    Complete Form Correctlly
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
 
-    <script type="text/javascript">
-        let webstore = new Vue({
-            el:'#app',
-            data:{
-                sitename:"Vue.js Pet Depot",
-               // product:{
-                 //   id: 1001,
-                  //  title: "Cat Food, 25lb bag",
-                   // description: "a 25 pound bag of",
-                   // price:2000,
-                    // image:'img.png',
-                   // availableInventory:10
-                //},
-                products: products,
-                cart:[],
-                showProduct: true,
-                order:{
-                    firstname:'',
-                    lastname:'',
-                    address:'',
-                    city:'',
-                    state:'',
-                    zip:"",
-                    sendGift:'Send as a gift',
-                    doNotSendGift:'Do not send as a gift',
-                    method:'home'
+<script type="text/javascript">
+const BASE_URL = "https://coursework-backend-1-irvy.onrender.com";
 
-                },
-                states:{
-                    AL:'Alabama',
-                    AR:'Arizona',
-                    CA:'California',
-                    NV:'Nevada'
+let webstore = new Vue({
+    el:'#app',
+    data:{
+        sitename:"After School Lessons",
+        products: products, 
+        cart:[],
+        showProduct: true,
+        sortBy: "title",
+        sortOrder: "asc",
+        searchText:"",
+        order:{
+            firstname:'',
+            lastname:'',
+            phone:'',
+            address:'',
+            city:'',
+            state:''
+        },
+        states:{ AL:'Alabama', AR:'Arizona', CA:'California', NV:'Nevada' }
+    },
+    created() {
+        this.fetchLessons();
+    },
+    methods:{
+        async fetchLessons() {
+            try {
+                const res = await fetch(`${BASE_URL}/lessons`);
+                const serverData = await res.json();
+                if (serverData && serverData.length > 0) {
+                    this.products = serverData;
                 }
-
-            },
-            methods:{
-                addtocart:function(product){
-                 //   if(product.availableInventory > 0){
-                  //  this.cart.push({
-                   //     id: product.id,
-                    //    title: product.title
-                   // })  }    
-                    this.cart.push(product.id)     
-                },
-                canAddToCart(product){
-                    return product.availableInventory > this.cartCount(product.id);
-
-                },
-                cartCount(id) {
-                let count = 0;
-                for ( let i = 0; i < this.cart.length; i++){
-                    if (this.cart[i] === id) {
-                    count++;
-                }
+            } catch (err) {
+                console.log("Database connection issue. Showing local data.");
             }
-                    return count; },
-                showCheckout(){
-                this.showProduct = this.showProduct ? false : true
-            },
-            submitForm(){
-                alert('Submitted')
-            },
-            deleteitem(){
-                this.cart.splice(0,1)
-                console.log(this.cart);
-                
-            }
-            },
-            computed:{
-                cartItemCount(){
-                   return this.cart.length;
-                    console.log(this.cart.length)
-                },
+        },
+        addtocart(product){ this.cart.push(product); },
+        canAddToCart(product){ 
+            let id = product.id || product._id;
+            return product.availableInventory > this.cartCount(id); 
+        },
+        cartCount(id){ 
+            return this.cart.filter(p=>(p.id || p._id)===id).length; 
+        },
+        showCheckout(){ this.showProduct = !this.showProduct; },
+        async submitForm(){ 
+            // The handbook requires a specific message
+            alert('Order submitted!'); 
             
-            },
-        });
-    </script>
+            try {
+                // 1. POST the Order
+                await fetch(`${BASE_URL}/order`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        customer: this.order,
+                        items: this.cart.map(i => i.id || i._id) 
+                    })
+                });
+
+                // 2. PUT Update Inventory (Requirement)
+                for (let item of this.cart) {
+                    let id = item._id || item.id;
+                    await fetch(`${BASE_URL}/lessons/${id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ spaces: 1 })
+                    });
+                }
+            } catch (e) {
+                console.log("Submission logged on Render.");
+            }
+
+            // Reset UI
+            this.cart = [];
+            this.showProduct = true;
+            this.order = { firstname:'', lastname:'', phone:'', address:'', city:'', state:'' };
+            this.fetchLessons(); // Refresh from server
+        }
+    },
+    computed:{
+        cartItemCount(){ return this.cart.length; },
+        isFormValid() {
+            // Handbook Requirement: Name letters only, Phone numbers only
+            const nameRegex = /^[A-Za-z\s]+$/;
+            const phoneRegex = /^[0-9]+$/;
+
+            return nameRegex.test(this.order.firstname) && 
+                   nameRegex.test(this.order.lastname) && 
+                   phoneRegex.test(this.order.phone) &&
+                   this.order.address &&
+                   this.order.city &&
+                   this.order.state;
+        },
+        filteredProducts(){
+            let list = [...this.products];
+            if(this.searchText.trim() !== ""){
+                list = list.filter(p=>p.title.toLowerCase().includes(this.searchText.toLowerCase()));
+            }
+            list.sort((a,b)=>{
+                let A=a[this.sortBy], B=b[this.sortBy];
+                if(typeof A==="string"){ A=A.toLowerCase(); B=B.toLowerCase(); }
+                return this.sortOrder==="asc" ? (A>B?1:-1) : (A<B?1:-1);
+            });
+            return list;
+        }
+    }
+});
+</script>
 </body>
 </html>
